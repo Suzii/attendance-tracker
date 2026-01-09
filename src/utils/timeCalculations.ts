@@ -93,17 +93,25 @@ export function calculateDayStats(
   const holiday = getCzechHoliday(dateString);
   const isHoliday = holiday !== null;
 
-  // Determine special day type (public holiday takes precedence)
-  let specialDay = record?.specialDay ?? null;
-  if (isHoliday) {
-    specialDay = 'public_holiday';
-  }
+  // Determine special day type
+  const specialDay = record?.specialDay ?? null;
 
   // Calculate total minutes
   let totalMinutes = 0;
-  if (specialDay) {
+
+  // Public holidays: 6h base + any logged work
+  if (isHoliday) {
     totalMinutes = SPECIAL_DAY_MINUTES;
-  } else if (record?.entries) {
+    if (record?.entries) {
+      totalMinutes += calculateEntriesTotal(record.entries);
+    }
+  }
+  // Sick/vacation days: flat 6h
+  else if (specialDay) {
+    totalMinutes = SPECIAL_DAY_MINUTES;
+  }
+  // Regular days: just logged entries
+  else if (record?.entries) {
     totalMinutes = calculateEntriesTotal(record.entries);
   }
 

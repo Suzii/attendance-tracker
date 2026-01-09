@@ -91,14 +91,28 @@ export function formatDayNumber(dateString: string): string {
 }
 
 /**
- * Get the ISO week number for a date.
+ * Get the ISO week number for a date (weeks start on Monday).
  */
 export function getWeekNumber(dateString: string): number {
   const date = new Date(dateString + 'T00:00:00');
-  const dayOfYear = Math.floor(
-    (date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000
-  );
-  const weekNumber = Math.ceil((dayOfYear + new Date(date.getFullYear(), 0, 1).getDay()) / 7);
+
+  // ISO week: week 1 is the week containing January 4th
+  // Weeks start on Monday
+  const target = new Date(date.valueOf());
+
+  // Set to nearest Thursday (current date + 4 - current day number)
+  // Make Sunday's day number 7
+  const dayNr = (date.getDay() + 6) % 7;
+  target.setDate(target.getDate() - dayNr + 3);
+
+  // Get first Thursday of year
+  const firstThursday = new Date(target.getFullYear(), 0, 4);
+  const firstDayNr = (firstThursday.getDay() + 6) % 7;
+  firstThursday.setDate(firstThursday.getDate() - firstDayNr + 3);
+
+  // Calculate week number
+  const weekNumber = 1 + Math.round((target.getTime() - firstThursday.getTime()) / 604800000);
+
   return weekNumber;
 }
 

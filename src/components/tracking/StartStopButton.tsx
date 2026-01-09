@@ -1,13 +1,34 @@
 import { useAttendance } from '../../hooks/useAttendance';
 import { hasBlockingErrors } from '../../utils/validation';
+import { getTodayDateString } from '../../utils/dateUtils';
+import { MAX_ENTRIES_PER_DAY } from '../../constants';
 
 export function StartStopButton() {
   const { state, startTracking, stopTracking, validationErrors } = useAttendance();
-  const { isTracking } = state;
+  const { isTracking, data } = state;
 
-  // Disable if there are unclosed entries on previous days
+  const today = getTodayDateString();
+  const todayRecord = data[today];
+
+  // Check all conditions that prevent starting
   const hasErrors = hasBlockingErrors(validationErrors);
-  const isDisabled = hasErrors && !isTracking;
+  const isSpecialDay = todayRecord?.specialDay !== null && todayRecord?.specialDay !== undefined;
+  const maxEntriesReached = (todayRecord?.entries.length ?? 0) >= MAX_ENTRIES_PER_DAY;
+
+  // Determine if disabled and why (public holidays are now allowed)
+  const cannotStart = !isTracking && (hasErrors || isSpecialDay || maxEntriesReached);
+  const isDisabled = cannotStart;
+
+  // Get reason for being disabled
+  const getDisabledReason = (): string | null => {
+    if (isTracking) return null;
+    if (hasErrors) return 'Fix unclosed entries first';
+    if (isSpecialDay) return todayRecord?.specialDay === 'sick' ? 'Sick day' : 'Vacation';
+    if (maxEntriesReached) return 'Max entries reached';
+    return null;
+  };
+
+  const disabledReason = getDisabledReason();
 
   const handleClick = () => {
     if (isTracking) {
@@ -18,25 +39,30 @@ export function StartStopButton() {
   };
 
   return (
-    <button
-      onClick={handleClick}
-      disabled={isDisabled}
-      className={`
-        w-32 h-32 rounded-full text-2xl font-bold
-        transition-all duration-200 shadow-lg
-        focus:outline-none focus:ring-4
-        ${isTracking
-          ? 'bg-red-500 hover:bg-red-600 text-white focus:ring-red-200'
-          : 'bg-green-500 hover:bg-green-600 text-white focus:ring-green-200'
-        }
-        ${isDisabled
-          ? 'opacity-50 cursor-not-allowed'
-          : 'cursor-pointer active:scale-95'
-        }
-      `}
-      aria-label={isTracking ? 'Stop time tracking' : 'Start time tracking'}
-    >
-      {isTracking ? 'STOP' : 'START'}
-    </button>
+    <div className="flex flex-col items-center gap-2">
+      <button
+        onClick={handleClick}
+        disabled={isDisabled}
+        className={`
+          w-32 h-32 rounded-full text-2xl font-bold
+          transition-colors duration-150 shadow-lg
+          focus:outline-none focus:ring-4
+          ${isTracking
+            ? 'bg-red-500 hover:bg-red-600 text-white focus:ring-red-200'
+            : 'bg-green-500 hover:bg-green-600 text-white focus:ring-green-200'
+          }
+          ${isDisabled
+            ? 'opacity-50 cursor-not-allowed'
+            : 'cursor-pointer active:scale-95'
+          }
+        `}
+        aria-label={isTracking ? 'Stop time tracking' : 'Start time tracking'}
+      >
+        {isTracking ? 'STOP' : 'START'}
+      </button>
+      {disabledReason && (
+        <span className="text-sm text-gray-500">{disabledReason}</span>
+      )}
+    </div>
   );
 }

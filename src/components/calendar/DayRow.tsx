@@ -56,12 +56,19 @@ export function DayRow({ dayStats, record, onEdit }: DayRowProps) {
       </div>
 
       {/* Time visualization or special day label */}
-      {specialDayLabel ? (
+      {specialDayLabel && (!record?.entries?.length || !isPublicHoliday) ? (
         <div className={`flex-1 text-sm font-medium ${textClass}`}>
           {specialDayLabel}
         </div>
       ) : (
-        <TimeSpanVisual entries={record?.entries ?? []} />
+        <div className="flex-1 flex items-center gap-2">
+          {isPublicHoliday && (
+            <span className={`text-xs font-medium ${textClass} shrink-0`}>
+              {holidayName}
+            </span>
+          )}
+          <TimeSpanVisual entries={record?.entries ?? []} />
+        </div>
       )}
 
       {/* Total time */}
@@ -72,15 +79,7 @@ export function DayRow({ dayStats, record, onEdit }: DayRowProps) {
       {/* Edit button */}
       <button
         onClick={onEdit}
-        disabled={isPublicHoliday}
-        className={`
-          px-2 py-1 text-sm rounded
-          ${isPublicHoliday
-            ? 'text-gray-300 cursor-not-allowed'
-            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-          }
-          transition-colors
-        `}
+        className="px-2 py-1 text-sm rounded text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
         aria-label={`Edit ${date}`}
       >
         Edit

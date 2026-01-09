@@ -1,19 +1,51 @@
 import type { TimeEntry } from '../../types';
 import { getTimePosition, getSpanWidth } from '../../utils/timeCalculations';
 
+// Work hours range (8:00 - 16:00)
+const WORK_HOURS_START = 8;
+const WORK_HOURS_END = 16;
+const WORK_HOURS_LEFT = (WORK_HOURS_START / 24) * 100;
+const WORK_HOURS_WIDTH = ((WORK_HOURS_END - WORK_HOURS_START) / 24) * 100;
+
 interface TimeSpanVisualProps {
   entries: TimeEntry[];
 }
 
 export function TimeSpanVisual({ entries }: TimeSpanVisualProps) {
+  // Work hours highlight background (shown even when no entries)
+  const workHoursHighlight = (
+    <div
+      className="absolute h-full bg-amber-100/60 rounded"
+      style={{
+        left: `${WORK_HOURS_LEFT}%`,
+        width: `${WORK_HOURS_WIDTH}%`,
+      }}
+      title="Work hours: 8:00 - 16:00"
+    />
+  );
+
   if (entries.length === 0) {
     return (
-      <div className="relative h-4 bg-gray-100 rounded flex-1 min-w-0" />
+      <div className="relative h-4 bg-gray-100 rounded flex-1 min-w-0 overflow-hidden">
+        {workHoursHighlight}
+        {/* Hour markers */}
+        {[6, 12, 18].map(hour => (
+          <div
+            key={hour}
+            className="absolute h-full w-px bg-gray-200"
+            style={{ left: `${(hour / 24) * 100}%` }}
+          />
+        ))}
+      </div>
     );
   }
 
   return (
     <div className="relative h-4 bg-gray-100 rounded flex-1 min-w-0 overflow-hidden">
+      {/* Work hours highlight */}
+      {workHoursHighlight}
+
+      {/* Time entries */}
       {entries.map(entry => {
         const left = getTimePosition(entry.start);
         const width = getSpanWidth(entry.start, entry.end);

@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 
 /**
- * Hook that returns elapsed minutes since a given start time.
+ * Hook that returns elapsed seconds since a given start time.
  * Updates every second when active.
  */
 export function useTimer(startTime: string | null, isActive: boolean): number {
-  const [elapsedMinutes, setElapsedMinutes] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   useEffect(() => {
     if (!isActive || !startTime) {
-      setElapsedMinutes(0);
+      setElapsedSeconds(0);
       return;
     }
 
@@ -18,7 +18,7 @@ export function useTimer(startTime: string | null, isActive: boolean): number {
     const updateElapsed = () => {
       const now = Date.now();
       const diffMs = now - start;
-      setElapsedMinutes(Math.floor(diffMs / 60000));
+      setElapsedSeconds(Math.floor(diffMs / 1000));
     };
 
     // Update immediately
@@ -30,17 +30,18 @@ export function useTimer(startTime: string | null, isActive: boolean): number {
     return () => clearInterval(interval);
   }, [startTime, isActive]);
 
-  return elapsedMinutes;
+  return elapsedSeconds;
 }
 
 /**
- * Hook that returns elapsed time formatted as "Xh YYm".
+ * Hook that returns elapsed time formatted as "Xh YYm SSs".
  */
 export function useFormattedTimer(startTime: string | null, isActive: boolean): string {
-  const elapsedMinutes = useTimer(startTime, isActive);
+  const elapsedSeconds = useTimer(startTime, isActive);
 
-  const hours = Math.floor(elapsedMinutes / 60);
-  const minutes = elapsedMinutes % 60;
+  const hours = Math.floor(elapsedSeconds / 3600);
+  const minutes = Math.floor((elapsedSeconds % 3600) / 60);
+  const seconds = elapsedSeconds % 60;
 
-  return `${hours}h ${String(minutes).padStart(2, '0')}m`;
+  return `${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
 }

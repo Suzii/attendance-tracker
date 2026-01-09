@@ -23,7 +23,7 @@ export function CurrentSession() {
       <div className="text-sm text-gray-500 uppercase tracking-wide">
         Current session
       </div>
-      <div className="text-3xl font-mono font-semibold text-gray-800 animate-pulse">
+      <div className="text-3xl font-mono font-semibold text-gray-800">
         {elapsedTime}
       </div>
     </div>

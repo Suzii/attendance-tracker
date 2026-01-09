@@ -64,11 +64,6 @@ function attendanceReducer(
     case 'START_TRACKING': {
       const today = getTodayDateString();
 
-      // Don't allow tracking on public holidays
-      if (isCzechHoliday(today)) {
-        return state;
-      }
-
       const dayRecord = state.data[today] || {
         date: today,
         entries: [],
@@ -142,11 +137,6 @@ function attendanceReducer(
 
     case 'UPDATE_DAY': {
       const { date } = action.payload;
-
-      // Don't allow updating public holidays
-      if (isCzechHoliday(date)) {
-        return state;
-      }
 
       return {
         ...state,
