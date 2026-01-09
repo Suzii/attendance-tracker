@@ -2,14 +2,17 @@ import { useState } from 'react';
 import { AttendanceProvider } from './context/AttendanceContext';
 import { StartStopButton, CurrentSession, LunchButtons } from './components/tracking';
 import { CalendarView } from './components/calendar';
+import { EditDayModal, ValidationBanner } from './components/editing';
 
 function AppContent() {
   const [editingDate, setEditingDate] = useState<string | null>(null);
 
   const handleEditDay = (date: string) => {
     setEditingDate(date);
-    // Edit modal will be implemented in Phase 5
-    console.log('Edit day:', date);
+  };
+
+  const handleCloseModal = () => {
+    setEditingDate(null);
   };
 
   return (
@@ -24,8 +27,16 @@ function AppContent() {
           </div>
         </div>
 
+        {/* Validation Banner */}
+        <ValidationBanner onEditDay={handleEditDay} />
+
         {/* Calendar Section */}
         <CalendarView onEditDay={handleEditDay} />
+
+        {/* Edit Modal */}
+        {editingDate && (
+          <EditDayModal date={editingDate} onClose={handleCloseModal} />
+        )}
       </div>
     </div>
   );

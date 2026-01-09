@@ -1,0 +1,118 @@
+interface TimestampInputProps {
+  label: string;
+  value: string; // ISO timestamp or empty
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}
+
+export function TimestampInput({ label, value, onChange, disabled }: TimestampInputProps) {
+  // Convert ISO timestamp to time input value (HH:MM)
+  const getTimeValue = (): string => {
+    if (!value) return '';
+    const date = new Date(value);
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
+  // Convert time input value to ISO timestamp
+  const handleTimeChange = (timeValue: string) => {
+    if (!timeValue) {
+      onChange('');
+      return;
+    }
+
+    // Get the date part from the current value or use today
+    let baseDate: Date;
+    if (value) {
+      baseDate = new Date(value);
+    } else {
+      baseDate = new Date();
+    }
+
+    const [hours, minutes] = timeValue.split(':').map(Number);
+    baseDate.setHours(hours, minutes, 0, 0);
+
+    onChange(baseDate.toISOString());
+  };
+
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-sm font-medium text-gray-600">{label}</label>
+      <input
+        type="time"
+        value={getTimeValue()}
+        onChange={(e) => handleTimeChange(e.target.value)}
+        disabled={disabled}
+        className={`
+          px-3 py-2 border rounded-lg text-sm
+          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+          ${disabled
+            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            : 'bg-white text-gray-800'
+          }
+        `}
+      />
+    </div>
+  );
+}
+
+interface TimeRangeInputProps {
+  entry: { id: string; start: string; end: string | null };
+  onStartChange: (value: string) => void;
+  onEndChange: (value: string) => void;
+  onDelete: () => void;
+  disabled?: boolean;
+}
+
+export function TimeRangeInput({
+  entry,
+  onStartChange,
+  onEndChange,
+  onDelete,
+  disabled,
+}: TimeRangeInputProps) {
+  return (
+    <div className="flex items-end gap-3 p-3 bg-gray-50 rounded-lg">
+      <TimestampInput
+        label="Start"
+        value={entry.start}
+        onChange={onStartChange}
+        disabled={disabled}
+      />
+      <TimestampInput
+        label="End"
+        value={entry.end ?? ''}
+        onChange={onEndChange}
+        disabled={disabled}
+      />
+      <button
+        onClick={onDelete}
+        disabled={disabled}
+        className={`
+          p-2 rounded-lg
+          ${disabled
+            ? 'text-gray-300 cursor-not-allowed'
+            : 'text-red-500 hover:bg-red-50 hover:text-red-600'
+          }
+          transition-colors
+        `}
+        title="Delete entry"
+      >
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+          />
+        </svg>
+      </button>
+    </div>
+  );
+}
