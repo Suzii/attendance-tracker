@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAttendance } from '../../hooks/useAttendance';
 import { TimeRangeInput } from './TimestampInput';
-import { LunchButtons } from '../tracking/LunchButtons';
 import type { DayRecord, TimeEntry, SpecialDayType } from '../../types';
 import { formatMonth, getDayName, formatDayNumber } from '../../utils/dateUtils';
-import { generateEntryId, formatMinutes, calculateEntriesTotal } from '../../utils/timeCalculations';
+import { generateEntryId, formatMinutes, calculateEntriesTotal, splitEntryForLunch } from '../../utils/timeCalculations';
 import { isCzechHoliday, getCzechHoliday } from '../../utils/czechHolidays';
 import { MAX_ENTRIES_PER_DAY, SPECIAL_DAY_MINUTES } from '../../constants';
 
@@ -105,6 +104,33 @@ export function EditDayModal({ date, onClose }: EditDayModalProps) {
   const handleClear = () => {
     setEntries([]);
     setSpecialDayType(null);
+  };
+
+  // Local lunch break handling (works on unsaved entries)
+  const canInsertLunch = (entry: TimeEntry, durationMinutes: number): boolean => {
+    if (!entry.end) return false;
+    const start = new Date(entry.start);
+    const end = new Date(entry.end);
+    const totalMinutes = (end.getTime() - start.getTime()) / 60000;
+    return totalMinutes >= durationMinutes + 60;
+  };
+
+  const handleLocalLunchBreak = (entryIndex: number, durationMinutes: number) => {
+    const entry = entries[entryIndex];
+    if (!entry) return;
+
+    const splitResult = splitEntryForLunch(entry, durationMinutes);
+    if (!splitResult) return;
+
+    const [firstEntry, secondEntry] = splitResult;
+    // Replace the original entry with the two split entries
+    const newEntries = [
+      ...entries.slice(0, entryIndex),
+      firstEntry,
+      secondEntry,
+      ...entries.slice(entryIndex + 1),
+    ];
+    setEntries(newEntries);
   };
 
   // Parse date for display
@@ -241,6 +267,8 @@ export function EditDayModal({ date, onClose }: EditDayModalProps) {
                       onStartChange={(v) => handleEntryStartChange(index, v)}
                       onEndChange={(v) => handleEntryEndChange(index, v)}
                       onDelete={() => handleDeleteEntry(index)}
+                      onLunchBreak={(duration) => handleLocalLunchBreak(index, duration)}
+                      canInsertLunch={(duration) => canInsertLunch(entry, duration)}
                     />
                   ))}
                 </div>
@@ -256,15 +284,6 @@ export function EditDayModal({ date, onClose }: EditDayModalProps) {
                 </button>
               )}
 
-              {/* Lunch break buttons */}
-              {entries.length > 0 && (
-                <div className="pt-4 border-t border-gray-100">
-                  <label className="text-sm font-medium text-gray-600 block mb-2">
-                    Insert Lunch Break
-                  </label>
-                  <LunchButtons targetDate={date} />
-                </div>
-              )}
             </div>
           )}
 

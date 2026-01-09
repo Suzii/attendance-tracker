@@ -63,6 +63,9 @@ interface TimeRangeInputProps {
   onEndChange: (value: string) => void;
   onDelete: () => void;
   disabled?: boolean;
+  /** Optional: show lunch break buttons */
+  onLunchBreak?: (durationMinutes: number) => void;
+  canInsertLunch?: (durationMinutes: number) => boolean;
 }
 
 export function TimeRangeInput({
@@ -71,9 +74,15 @@ export function TimeRangeInput({
   onEndChange,
   onDelete,
   disabled,
+  onLunchBreak,
+  canInsertLunch,
 }: TimeRangeInputProps) {
+  const showLunchButtons = onLunchBreak && canInsertLunch && entry.end;
+  const canShort = showLunchButtons && canInsertLunch(30);
+  const canLong = showLunchButtons && canInsertLunch(60);
+
   return (
-    <div className="flex items-end gap-3 p-3 bg-gray-50 rounded-lg">
+    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
       <TimestampInput
         label="Start"
         value={entry.start}
@@ -86,11 +95,12 @@ export function TimeRangeInput({
         onChange={onEndChange}
         disabled={disabled}
       />
+
       <button
         onClick={onDelete}
         disabled={disabled}
         className={`
-          p-2 rounded-lg
+          p-2 rounded-lg self-end
           ${disabled
             ? 'text-gray-300 cursor-not-allowed'
             : 'text-red-500 hover:bg-red-50 hover:text-red-600'
@@ -113,6 +123,42 @@ export function TimeRangeInput({
           />
         </svg>
       </button>
+
+      {/* Lunch break buttons - after delete, aligned to bottom like delete button */}
+      {showLunchButtons && (canShort || canLong) && (
+        <div className="flex items-center gap-1 self-end pb-1">
+          <button
+            onClick={() => onLunchBreak!(30)}
+            disabled={!canShort}
+            className={`
+              px-2 py-1.5 text-xs font-medium rounded
+              transition-colors
+              ${canShort
+                ? 'bg-gray-200 hover:bg-gray-300 text-gray-600'
+                : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+              }
+            `}
+            title="Insert 30-minute lunch break"
+          >
+            -0.5h
+          </button>
+          <button
+            onClick={() => onLunchBreak!(60)}
+            disabled={!canLong}
+            className={`
+              px-2 py-1.5 text-xs font-medium rounded
+              transition-colors
+              ${canLong
+                ? 'bg-gray-200 hover:bg-gray-300 text-gray-600'
+                : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+              }
+            `}
+            title="Insert 1-hour lunch break"
+          >
+            -1h
+          </button>
+        </div>
+      )}
     </div>
   );
 }
