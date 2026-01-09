@@ -44,6 +44,7 @@ export function TimestampInput({ label, value, onChange, disabled }: TimestampIn
         value={getTimeValue()}
         onChange={(e) => handleTimeChange(e.target.value)}
         disabled={disabled}
+        step="300"
         className={`
           px-3 py-2 border rounded-lg text-sm
           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
