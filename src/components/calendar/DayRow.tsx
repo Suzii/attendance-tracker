@@ -15,7 +15,7 @@ export function DayRow({ dayStats, record, onEdit }: DayRowProps) {
 
   // Determine row styling
   let rowClass = '';
-  let textClass = DAY_COLORS.weekday;
+  let textClass: string = DAY_COLORS.weekday;
 
   if (isPublicHoliday) {
     rowClass = DAY_COLORS.publicHoliday;

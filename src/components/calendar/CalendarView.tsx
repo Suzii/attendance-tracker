@@ -1,10 +1,8 @@
-import { useState } from 'react';
 import { useAttendance } from '../../hooks/useAttendance';
 import { DayRow } from './DayRow';
 import { WeekSummary } from './WeekSummary';
 import { MonthSelector } from './MonthSelector';
 import { formatMinutes } from '../../utils/timeCalculations';
-import { SPECIAL_DAY_MINUTES } from '../../constants';
 
 interface CalendarViewProps {
   onEditDay: (date: string) => void;
@@ -28,7 +26,7 @@ export function CalendarView({ onEditDay }: CalendarViewProps) {
 
       {/* Calendar content */}
       <div className="divide-y divide-gray-100">
-        {weekSummaries.map((week, weekIndex) => (
+        {weekSummaries.map((week) => (
           <div key={week.weekNumber} className="p-4">
             {/* Week header with summary */}
             <div className="mb-3">

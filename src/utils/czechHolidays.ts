@@ -147,7 +147,7 @@ export function getCzechHolidaysForYear(year: number): Array<{ date: string; hol
  * Returns an array of date strings (YYYY-MM-DD) that are holidays in that month.
  */
 export function getCzechHolidaysForMonth(yearMonth: string): Array<{ date: string; holiday: CzechHoliday }> {
-  const [yearStr, monthStr] = yearMonth.split('-');
+  const [yearStr] = yearMonth.split('-');
   const year = parseInt(yearStr, 10);
 
   return getCzechHolidaysForYear(year).filter(h => h.date.startsWith(yearMonth));

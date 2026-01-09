@@ -4,7 +4,7 @@ import { useAttendance } from '../hooks/useAttendance';
 import { StartStopButton, CurrentSession, LunchButtons } from '../components/tracking';
 import { CalendarView } from '../components/calendar';
 import { EditDayModal, ValidationBanner } from '../components/editing';
-import { isValidYearMonth, getCurrentMonthString, parseYearMonth } from '../utils/dateUtils';
+import { isValidYearMonth, parseYearMonth } from '../utils/dateUtils';
 
 export function HomePage() {
   const { year, month } = useParams<{ year?: string; month?: string }>();

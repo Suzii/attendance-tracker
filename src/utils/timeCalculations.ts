@@ -5,7 +5,6 @@ import {
   THRESHOLD_OVERTIME_MINUTES,
   THRESHOLD_UNDER_MINUTES,
   TOTAL_DISPLAY_MINUTES,
-  LUNCH_DURATION_SHORT,
   LUNCH_DURATION_LONG,
 } from '../constants';
 import { getDayOfWeek, isWeekend, getWeekNumber } from './dateUtils';

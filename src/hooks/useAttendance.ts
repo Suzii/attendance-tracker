@@ -1,5 +1,6 @@
 import { useContext } from 'react';
-import { AttendanceContext, AttendanceContextValue } from '../context/AttendanceContext';
+import { AttendanceContext } from '../context/AttendanceContext';
+import type { AttendanceContextValue } from '../context/AttendanceContext';
 
 /**
  * Hook to access attendance context.

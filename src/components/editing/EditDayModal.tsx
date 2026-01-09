@@ -63,7 +63,6 @@ export function EditDayModal({ date, onClose }: EditDayModalProps) {
     if (entries.length >= MAX_ENTRIES_PER_DAY) return;
 
     // Create a new entry with default times
-    const now = new Date();
     const baseDate = new Date(date + 'T09:00:00');
 
     const newEntry: TimeEntry = {
