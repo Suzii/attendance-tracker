@@ -1,4 +1,4 @@
-import { WeekSummary as WeekSummaryType } from '../../types';
+import type { WeekSummary as WeekSummaryType } from '../../types';
 import { formatMinutes } from '../../utils/timeCalculations';
 import { STATUS_COLORS } from '../../constants';
 

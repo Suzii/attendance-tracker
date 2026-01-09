@@ -1,4 +1,4 @@
-import { AttendanceData, ValidationError, DayRecord } from '../types';
+import type { AttendanceData, ValidationError, DayRecord } from '../types';
 import { getTodayDateString } from './dateUtils';
 
 /**

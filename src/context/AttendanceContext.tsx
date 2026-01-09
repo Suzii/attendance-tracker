@@ -5,7 +5,7 @@ import {
   useMemo,
   type ReactNode,
 } from 'react';
-import {
+import type {
   AttendanceState,
   AttendanceData,
   DayRecord,

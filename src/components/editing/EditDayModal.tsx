@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAttendance } from '../../hooks/useAttendance';
 import { TimeRangeInput } from './TimestampInput';
 import { LunchButtons } from '../tracking/LunchButtons';
-import { DayRecord, TimeEntry, SpecialDayType } from '../../types';
+import type { DayRecord, TimeEntry, SpecialDayType } from '../../types';
 import { formatMonth, getDayName, formatDayNumber } from '../../utils/dateUtils';
 import { generateEntryId, formatMinutes, calculateEntriesTotal } from '../../utils/timeCalculations';
 import { isCzechHoliday, getCzechHoliday } from '../../utils/czechHolidays';

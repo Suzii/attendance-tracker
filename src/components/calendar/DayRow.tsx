@@ -1,4 +1,4 @@
-import { DayStats, DayRecord } from '../../types';
+import type { DayStats, DayRecord } from '../../types';
 import { TimeSpanVisual } from './TimeSpanVisual';
 import { getDayName, formatDayNumber } from '../../utils/dateUtils';
 import { formatMinutes } from '../../utils/timeCalculations';

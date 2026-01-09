@@ -1,4 +1,4 @@
-import { TimeEntry, DayRecord, DayStats, WeekSummary } from '../types';
+import type { TimeEntry, DayRecord, DayStats, WeekSummary } from '../types';
 import {
   SPECIAL_DAY_MINUTES,
   WEEKLY_TARGET_MINUTES,

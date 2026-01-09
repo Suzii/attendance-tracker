@@ -1,4 +1,4 @@
-import { TimeEntry } from '../../types';
+import type { TimeEntry } from '../../types';
 import { getTimePosition, getSpanWidth } from '../../utils/timeCalculations';
 
 interface TimeSpanVisualProps {

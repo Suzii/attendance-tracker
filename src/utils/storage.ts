@@ -1,4 +1,4 @@
-import { AttendanceData, StoredData } from '../types';
+import type { AttendanceData, StoredData } from '../types';
 import { STORAGE_KEY, STORAGE_VERSION } from '../constants';
 
 /**
