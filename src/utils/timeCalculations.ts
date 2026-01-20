@@ -1,14 +1,11 @@
 import type { TimeEntry, DayRecord, DayStats, WeekSummary } from '../types';
 import {
   SPECIAL_DAY_MINUTES,
-  WEEKLY_TARGET_MINUTES,
-  THRESHOLD_OVERTIME_MINUTES,
-  THRESHOLD_UNDER_MINUTES,
   TOTAL_DISPLAY_MINUTES,
   LUNCH_DURATION_LONG,
 } from '../constants';
 import { getDayOfWeek, isWeekend, getWeekNumber } from './dateUtils';
-import { getCzechHoliday, isCzechHoliday } from './czechHolidays';
+import { getCzechHoliday } from './czechHolidays';
 
 /**
  * Calculate the total minutes worked from a list of time entries.
@@ -74,12 +71,22 @@ export function getSpanWidth(start: string, end: string | null): number {
 }
 
 /**
- * Determine the weekly status based on total minutes.
+ * Determine the weekly status based on total minutes and dynamic target.
+ * Thresholds are relative to target:
+ * - overtime: >= 115% of target
+ * - met: >= 100% of target
+ * - under: >= 92% of target (27.5/30 ratio)
+ * - way-under: < 92% of target
  */
-export function getWeekStatus(totalMinutes: number): 'overtime' | 'met' | 'under' | 'way-under' {
-  if (totalMinutes >= THRESHOLD_OVERTIME_MINUTES) return 'overtime';
-  if (totalMinutes >= WEEKLY_TARGET_MINUTES) return 'met';
-  if (totalMinutes >= THRESHOLD_UNDER_MINUTES) return 'under';
+export function getWeekStatus(totalMinutes: number, targetMinutes: number): 'overtime' | 'met' | 'under' | 'way-under' {
+  if (targetMinutes === 0) return 'met'; // No workdays in this week portion
+
+  const overtimeThreshold = targetMinutes * 1.15;
+  const underThreshold = targetMinutes * 0.917; // ~27.5/30 ratio
+
+  if (totalMinutes >= overtimeThreshold) return 'overtime';
+  if (totalMinutes >= targetMinutes) return 'met';
+  if (totalMinutes >= underThreshold) return 'under';
   return 'way-under';
 }
 
@@ -128,8 +135,16 @@ export function calculateDayStats(
 }
 
 /**
+ * Count workdays in a week (Mon-Fri).
+ * Public holidays on weekdays count as workdays (they contribute 6h like sick/vacation).
+ */
+function countWeekWorkdays(days: DayStats[]): number {
+  return days.filter(day => !day.isWeekend).length;
+}
+
+/**
  * Calculate week summaries from an array of day stats.
- * Groups days by week and calculates totals.
+ * Groups days by week and calculates totals with dynamic targets.
  */
 export function calculateWeekSummaries(dayStats: DayStats[]): WeekSummary[] {
   if (dayStats.length === 0) return [];
@@ -144,12 +159,14 @@ export function calculateWeekSummaries(dayStats: DayStats[]): WeekSummary[] {
     if (weekNumber !== currentWeekNumber && currentWeek.length > 0) {
       // Finish the current week
       const totalMinutes = currentWeek.reduce((sum, d) => sum + d.totalMinutes, 0);
+      const workdays = countWeekWorkdays(currentWeek);
+      const targetMinutes = workdays * SPECIAL_DAY_MINUTES;
       weeks.push({
         weekNumber: currentWeekNumber,
         days: currentWeek,
         totalMinutes,
-        targetMinutes: WEEKLY_TARGET_MINUTES,
-        status: getWeekStatus(totalMinutes),
+        targetMinutes,
+        status: getWeekStatus(totalMinutes, targetMinutes),
       });
       currentWeek = [];
       currentWeekNumber = weekNumber;
@@ -161,12 +178,14 @@ export function calculateWeekSummaries(dayStats: DayStats[]): WeekSummary[] {
   // Don't forget the last week
   if (currentWeek.length > 0) {
     const totalMinutes = currentWeek.reduce((sum, d) => sum + d.totalMinutes, 0);
+    const workdays = countWeekWorkdays(currentWeek);
+    const targetMinutes = workdays * SPECIAL_DAY_MINUTES;
     weeks.push({
       weekNumber: currentWeekNumber,
       days: currentWeek,
       totalMinutes,
-      targetMinutes: WEEKLY_TARGET_MINUTES,
-      status: getWeekStatus(totalMinutes),
+      targetMinutes,
+      status: getWeekStatus(totalMinutes, targetMinutes),
     });
   }
 
@@ -175,14 +194,13 @@ export function calculateWeekSummaries(dayStats: DayStats[]): WeekSummary[] {
 
 /**
  * Count workdays in a list of dates.
- * Workdays = Mon-Fri excluding public holidays.
+ * Workdays = Mon-Fri (public holidays count as workdays since they contribute 6h).
  */
 export function countWorkdays(dates: string[]): number {
   return dates.filter(date => {
     const dayOfWeek = getDayOfWeek(date);
     const isWeekday = dayOfWeek < 5; // 0-4 = Mon-Fri
-    const isHoliday = isCzechHoliday(date);
-    return isWeekday && !isHoliday;
+    return isWeekday;
   }).length;
 }
 
