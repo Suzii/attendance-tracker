@@ -38,20 +38,29 @@ type AttendanceAction =
   | { type: 'LOAD_DATA'; payload: AttendanceData }
   | { type: 'ADD_LUNCH_BREAK'; payload: { date: string; entryId: string; durationMinutes: number } };
 
+// Find any ongoing entry across all days
+function findOngoingEntry(data: AttendanceData): { date: string; entry: TimeEntry } | null {
+  for (const [date, record] of Object.entries(data)) {
+    const openEntry = record.entries.find(e => e.end === null);
+    if (openEntry) {
+      return { date, entry: openEntry };
+    }
+  }
+  return null;
+}
+
 // Initial state
 function getInitialState(): AttendanceState {
   const data = loadData();
 
-  // Check if there's an ongoing entry today
-  const today = getTodayDateString();
-  const todayRecord = data[today];
-  const ongoingEntry = todayRecord?.entries.find(e => e.end === null);
+  // Check if there's an ongoing entry in any day
+  const ongoing = findOngoingEntry(data);
 
   return {
     data,
     selectedMonth: getCurrentMonthString(),
-    isTracking: !!ongoingEntry,
-    currentEntryId: ongoingEntry?.id ?? null,
+    isTracking: !!ongoing,
+    currentEntryId: ongoing?.entry.id ?? null,
   };
 }
 
@@ -101,12 +110,22 @@ function attendanceReducer(
     }
 
     case 'STOP_TRACKING': {
-      const today = getTodayDateString();
-      const dayRecord = state.data[today];
-
-      if (!dayRecord || !state.currentEntryId) {
+      if (!state.currentEntryId) {
         return state;
       }
+
+      // Find which day has the ongoing entry
+      const ongoing = findOngoingEntry(state.data);
+      if (!ongoing) {
+        return {
+          ...state,
+          isTracking: false,
+          currentEntryId: null,
+        };
+      }
+
+      const { date: entryDate, entry: _ } = ongoing;
+      const dayRecord = state.data[entryDate];
 
       const updatedEntries = dayRecord.entries.map(entry =>
         entry.id === state.currentEntryId
@@ -120,7 +139,7 @@ function attendanceReducer(
         currentEntryId: null,
         data: {
           ...state.data,
-          [today]: {
+          [entryDate]: {
             ...dayRecord,
             entries: updatedEntries,
           },
