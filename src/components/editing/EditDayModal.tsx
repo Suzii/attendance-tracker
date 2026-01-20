@@ -5,7 +5,7 @@ import type { DayRecord, TimeEntry, SpecialDayType } from '../../types';
 import { formatMonth, getDayName, formatDayNumber } from '../../utils/dateUtils';
 import { generateEntryId, formatMinutes, calculateEntriesTotal, splitEntryForLunch, isHalfDay, getSpecialDayMinutes } from '../../utils/timeCalculations';
 import { isCzechHoliday, getCzechHoliday } from '../../utils/czechHolidays';
-import { MAX_ENTRIES_PER_DAY, SPECIAL_DAY_MINUTES, HALF_DAY_MINUTES } from '../../constants';
+import { MAX_ENTRIES_PER_DAY, SPECIAL_DAY_MINUTES } from '../../constants';
 
 interface EditDayModalProps {
   date: string;
