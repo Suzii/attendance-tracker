@@ -1,5 +1,5 @@
-import type { AttendanceData, StoredData } from '../types';
-import { STORAGE_KEY, STORAGE_VERSION } from '../constants';
+import type { AttendanceData, StoredData, Settings, MonthSettings, StoredSettings } from '../types';
+import { STORAGE_KEY, STORAGE_VERSION, SETTINGS_STORAGE_KEY, SETTINGS_VERSION, DEFAULT_DAILY_WORK_HOURS } from '../constants';
 
 /**
  * Load attendance data from localStorage.
@@ -83,4 +83,73 @@ export function importData(jsonString: string): AttendanceData | null {
     console.error('Failed to parse imported data:', error);
     return null;
   }
+}
+
+// ============ Settings Storage ============
+
+const DEFAULT_SETTINGS: Settings = {
+  dailyWorkHours: DEFAULT_DAILY_WORK_HOURS,
+};
+
+/**
+ * Load settings from localStorage.
+ */
+export function loadSettings(): { settings: Settings; monthlySettings: { [month: string]: MonthSettings } } {
+  try {
+    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (!raw) {
+      return { settings: DEFAULT_SETTINGS, monthlySettings: {} };
+    }
+
+    const stored: StoredSettings = JSON.parse(raw);
+    return {
+      settings: stored.settings ?? DEFAULT_SETTINGS,
+      monthlySettings: stored.monthlySettings ?? {},
+    };
+  } catch (error) {
+    console.error('Failed to load settings from localStorage:', error);
+    return { settings: DEFAULT_SETTINGS, monthlySettings: {} };
+  }
+}
+
+/**
+ * Save settings to localStorage.
+ */
+export function saveSettings(settings: Settings, monthlySettings: { [month: string]: MonthSettings }): void {
+  try {
+    const stored: StoredSettings = {
+      version: SETTINGS_VERSION,
+      settings,
+      monthlySettings,
+    };
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(stored));
+  } catch (error) {
+    console.error('Failed to save settings to localStorage:', error);
+  }
+}
+
+/**
+ * Get the daily work hours for a specific month.
+ * Returns the month-specific setting if it exists, otherwise the default setting.
+ */
+export function getMonthlyWorkHours(
+  month: string,
+  settings: Settings,
+  monthlySettings: { [month: string]: MonthSettings }
+): number {
+  return monthlySettings[month]?.dailyWorkHours ?? settings.dailyWorkHours;
+}
+
+/**
+ * Set the daily work hours for a specific month (bakes it into the month's data).
+ */
+export function setMonthlyWorkHours(
+  month: string,
+  hours: number,
+  monthlySettings: { [month: string]: MonthSettings }
+): { [month: string]: MonthSettings } {
+  return {
+    ...monthlySettings,
+    [month]: { dailyWorkHours: hours },
+  };
 }

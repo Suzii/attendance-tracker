@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAttendance } from '../../hooks/useAttendance';
+import { useSettings } from '../../hooks/useSettings';
 import { TimeRangeInput } from './TimestampInput';
 import type { DayRecord, TimeEntry, SpecialDayType } from '../../types';
 import { formatMonth, getDayName, formatDayNumber } from '../../utils/dateUtils';
 import { generateEntryId, formatMinutes, calculateEntriesTotal, splitEntryForLunch, isHalfDay, getSpecialDayMinutes } from '../../utils/timeCalculations';
 import { isCzechHoliday, getCzechHoliday } from '../../utils/czechHolidays';
-import { MAX_ENTRIES_PER_DAY, SPECIAL_DAY_MINUTES } from '../../constants';
+import { MAX_ENTRIES_PER_DAY } from '../../constants';
 
 interface EditDayModalProps {
   date: string;
@@ -14,6 +15,12 @@ interface EditDayModalProps {
 
 export function EditDayModal({ date, onClose }: EditDayModalProps) {
   const { state, updateDay, setSpecialDay } = useAttendance();
+  const { getWorkHoursForMonth } = useSettings();
+
+  // Get the month from the date (YYYY-MM)
+  const month = date.substring(0, 7);
+  const dailyWorkHours = getWorkHoursForMonth(month);
+  const dailyWorkMinutes = dailyWorkHours * 60;
 
   // Get existing record or create empty one
   const existingRecord = state.data[date];
@@ -61,17 +68,17 @@ export function EditDayModal({ date, onClose }: EditDayModalProps) {
   }, [date, state.data]);
 
   // Calculate total for display
-  // Public holidays: 6h base + logged entries
-  // Full sick/vacation: flat 6h
-  // Half sick/vacation: 3h + logged entries
+  // Public holidays: dailyWorkMinutes base + logged entries
+  // Full sick/vacation: flat dailyWorkMinutes
+  // Half sick/vacation: dailyWorkMinutes/2 + logged entries
   // Regular: just logged entries
   const entriesMinutes = calculateEntriesTotal(entries);
   const isHalfDayType = isHalfDay(specialDayType);
   let totalMinutes = 0;
   if (isPublicHoliday) {
-    totalMinutes = SPECIAL_DAY_MINUTES + entriesMinutes;
+    totalMinutes = dailyWorkMinutes + entriesMinutes;
   } else if (specialDayType) {
-    const specialMinutes = getSpecialDayMinutes(specialDayType);
+    const specialMinutes = getSpecialDayMinutes(specialDayType, dailyWorkMinutes);
     totalMinutes = isHalfDayType ? specialMinutes + entriesMinutes : specialMinutes;
   } else {
     totalMinutes = entriesMinutes;
@@ -231,7 +238,7 @@ export function EditDayModal({ date, onClose }: EditDayModalProps) {
           {isPublicHoliday && (
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-700">
-                Public holiday: 6h base + any extra work you log below.
+                Public holiday: {dailyWorkHours}h base + any extra work you log below.
               </p>
             </div>
           )}
@@ -379,7 +386,7 @@ export function EditDayModal({ date, onClose }: EditDayModalProps) {
           {!isPublicHoliday && specialDayType && !isHalfDayType && entries.length === 0 && (
             <div className="text-center py-4">
               <p className="text-gray-600">
-                {baseType === 'sick' ? 'Sick day' : 'Vacation'} - 6 hours will be logged automatically.
+                {baseType === 'sick' ? 'Sick day' : 'Vacation'} - {dailyWorkHours} hours will be logged automatically.
               </p>
             </div>
           )}
@@ -397,7 +404,7 @@ export function EditDayModal({ date, onClose }: EditDayModalProps) {
           {!isPublicHoliday && specialDayType && isHalfDayType && (
             <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
               <p className="text-sm text-gray-600">
-                {baseType === 'sick' ? 'Sick day' : 'Vacation'} ({portion === 'first_half' ? 'first half' : 'second half'}) - 3 hours will be logged. You can track work for the other half below.
+                {baseType === 'sick' ? 'Sick day' : 'Vacation'} ({portion === 'first_half' ? 'first half' : 'second half'}) - {dailyWorkHours / 2} hours will be logged. You can track work for the other half below.
               </p>
             </div>
           )}
@@ -413,12 +420,12 @@ export function EditDayModal({ date, onClose }: EditDayModalProps) {
               </span>
               {isPublicHoliday && entriesMinutes > 0 && (
                 <span className="text-gray-400 ml-1">
-                  (6h + {formatMinutes(entriesMinutes)})
+                  ({dailyWorkHours}h + {formatMinutes(entriesMinutes)})
                 </span>
               )}
               {isHalfDayType && entriesMinutes > 0 && (
                 <span className="text-gray-400 ml-1">
-                  (3h + {formatMinutes(entriesMinutes)})
+                  ({dailyWorkHours / 2}h + {formatMinutes(entriesMinutes)})
                 </span>
               )}
             </div>

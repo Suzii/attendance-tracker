@@ -16,9 +16,14 @@ export const THRESHOLD_UNDER_MINUTES = THRESHOLD_UNDER_HOURS * 60; // 1650
 // Max entries per day
 export const MAX_ENTRIES_PER_DAY = 10;
 
-// LocalStorage key
+// LocalStorage keys
 export const STORAGE_KEY = 'attendance-tracker-data';
+export const SETTINGS_STORAGE_KEY = 'attendance-tracker-settings';
 export const STORAGE_VERSION = 1;
+export const SETTINGS_VERSION = 1;
+
+// Default settings
+export const DEFAULT_DAILY_WORK_HOURS = 6;
 
 // Day display range (full 24 hours for visualization)
 export const DAY_START_HOUR = 0;

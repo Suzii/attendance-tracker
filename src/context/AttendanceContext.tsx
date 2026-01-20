@@ -15,8 +15,9 @@ import type {
   ValidationError,
   SpecialDayType,
 } from '../types';
-import { MAX_ENTRIES_PER_DAY, SPECIAL_DAY_MINUTES } from '../constants';
+import { MAX_ENTRIES_PER_DAY } from '../constants';
 import { loadData, saveData } from '../utils/storage';
+import { useSettings } from '../hooks/useSettings';
 import { getTodayDateString, getCurrentMonthString, getMonthDates } from '../utils/dateUtils';
 import {
   calculateDayStats,
@@ -272,6 +273,21 @@ export const AttendanceContext = createContext<AttendanceContextValue | null>(nu
 // Provider component
 export function AttendanceProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(attendanceReducer, null, getInitialState);
+  const { getWorkHoursForMonth, ensureMonthSettings } = useSettings();
+
+  // Get the daily minutes for the current month
+  const dailyWorkMinutes = useMemo(
+    () => getWorkHoursForMonth(state.selectedMonth) * 60,
+    [getWorkHoursForMonth, state.selectedMonth]
+  );
+
+  // Ensure the current month has settings baked in when we have data
+  useEffect(() => {
+    const hasDataForMonth = Object.keys(state.data).some(date => date.startsWith(state.selectedMonth));
+    if (hasDataForMonth) {
+      ensureMonthSettings(state.selectedMonth);
+    }
+  }, [state.selectedMonth, state.data, ensureMonthSettings]);
 
   // Persist to localStorage on data changes
   useEffect(() => {
@@ -285,13 +301,13 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   );
 
   const currentMonthDayStats = useMemo(
-    () => currentMonthDates.map(date => calculateDayStats(date, state.data[date])),
-    [currentMonthDates, state.data]
+    () => currentMonthDates.map(date => calculateDayStats(date, state.data[date], dailyWorkMinutes)),
+    [currentMonthDates, state.data, dailyWorkMinutes]
   );
 
   const weekSummaries = useMemo(
-    () => calculateWeekSummaries(currentMonthDayStats),
-    [currentMonthDayStats]
+    () => calculateWeekSummaries(currentMonthDayStats, dailyWorkMinutes),
+    [currentMonthDayStats, dailyWorkMinutes]
   );
 
   const validationErrors = useMemo(
@@ -305,13 +321,13 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   );
 
   const monthlyExpectedMinutes = useMemo(
-    () => calculateExpectedMinutes(currentMonthDates),
-    [currentMonthDates]
+    () => calculateExpectedMinutes(currentMonthDates, dailyWorkMinutes),
+    [currentMonthDates, dailyWorkMinutes]
   );
 
   const workdaysInMonth = useMemo(
-    () => monthlyExpectedMinutes / SPECIAL_DAY_MINUTES,
-    [monthlyExpectedMinutes]
+    () => dailyWorkMinutes > 0 ? monthlyExpectedMinutes / dailyWorkMinutes : 0,
+    [monthlyExpectedMinutes, dailyWorkMinutes]
   );
 
   // Action helpers

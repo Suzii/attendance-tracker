@@ -1,7 +1,6 @@
 import type { TimeEntry, DayRecord, DayStats, WeekSummary, SpecialDayType } from '../types';
 import {
   SPECIAL_DAY_MINUTES,
-  HALF_DAY_MINUTES,
   TOTAL_DISPLAY_MINUTES,
   LUNCH_DURATION_LONG,
 } from '../constants';
@@ -17,10 +16,11 @@ export function isHalfDay(specialDay: SpecialDayType): boolean {
 
 /**
  * Get the minutes credited for a special day type.
- * Full days (sick, vacation) = 6h, half days = 3h.
+ * Full days (sick, vacation) = dailyMinutes, half days = dailyMinutes / 2.
+ * @param dailyMinutes - The full day minutes (e.g., 360 for 6h). Defaults to SPECIAL_DAY_MINUTES for backwards compatibility.
  */
-export function getSpecialDayMinutes(specialDay: SpecialDayType): number {
-  return isHalfDay(specialDay) ? HALF_DAY_MINUTES : SPECIAL_DAY_MINUTES;
+export function getSpecialDayMinutes(specialDay: SpecialDayType, dailyMinutes: number = SPECIAL_DAY_MINUTES): number {
+  return isHalfDay(specialDay) ? dailyMinutes / 2 : dailyMinutes;
 }
 
 /**
@@ -38,14 +38,15 @@ export function calculateEntriesTotal(entries: TimeEntry[]): number {
 
 /**
  * Calculate total minutes for a day record.
- * Full special days (sick, vacation, public_holiday) return SPECIAL_DAY_MINUTES.
- * Half-day special days return HALF_DAY_MINUTES + logged entries.
+ * Full special days (sick, vacation, public_holiday) return dailyMinutes.
+ * Half-day special days return dailyMinutes/2 + logged entries.
+ * @param dailyMinutes - The full day minutes. Defaults to SPECIAL_DAY_MINUTES for backwards compatibility.
  */
-export function calculateDayTotal(record: DayRecord | undefined): number {
+export function calculateDayTotal(record: DayRecord | undefined, dailyMinutes: number = SPECIAL_DAY_MINUTES): number {
   if (!record) return 0;
 
   if (record.specialDay) {
-    const specialMinutes = getSpecialDayMinutes(record.specialDay);
+    const specialMinutes = getSpecialDayMinutes(record.specialDay, dailyMinutes);
     // Half-days allow tracking work for the other half
     if (isHalfDay(record.specialDay)) {
       return specialMinutes + calculateEntriesTotal(record.entries);
@@ -114,10 +115,12 @@ export function getWeekStatus(totalMinutes: number, targetMinutes: number): 'ove
 
 /**
  * Calculate day statistics for a single date.
+ * @param dailyMinutes - The full day minutes. Defaults to SPECIAL_DAY_MINUTES for backwards compatibility.
  */
 export function calculateDayStats(
   dateString: string,
-  record: DayRecord | undefined
+  record: DayRecord | undefined,
+  dailyMinutes: number = SPECIAL_DAY_MINUTES
 ): DayStats {
   const holiday = getCzechHoliday(dateString);
   const isHoliday = holiday !== null;
@@ -128,16 +131,16 @@ export function calculateDayStats(
   // Calculate total minutes
   let totalMinutes = 0;
 
-  // Public holidays: 6h base + any logged work
+  // Public holidays: dailyMinutes base + any logged work
   if (isHoliday) {
-    totalMinutes = SPECIAL_DAY_MINUTES;
+    totalMinutes = dailyMinutes;
     if (record?.entries) {
       totalMinutes += calculateEntriesTotal(record.entries);
     }
   }
   // Sick/vacation days (full or half)
   else if (specialDay) {
-    const specialMinutes = getSpecialDayMinutes(specialDay);
+    const specialMinutes = getSpecialDayMinutes(specialDay, dailyMinutes);
     // Half-days allow tracking work for the other half
     if (isHalfDay(specialDay) && record?.entries) {
       totalMinutes = specialMinutes + calculateEntriesTotal(record.entries);
@@ -173,8 +176,9 @@ function countWeekWorkdays(days: DayStats[]): number {
 /**
  * Calculate week summaries from an array of day stats.
  * Groups days by week and calculates totals with dynamic targets.
+ * @param dailyMinutes - The full day minutes for target calculation. Defaults to SPECIAL_DAY_MINUTES.
  */
-export function calculateWeekSummaries(dayStats: DayStats[]): WeekSummary[] {
+export function calculateWeekSummaries(dayStats: DayStats[], dailyMinutes: number = SPECIAL_DAY_MINUTES): WeekSummary[] {
   if (dayStats.length === 0) return [];
 
   const weeks: WeekSummary[] = [];
@@ -188,7 +192,7 @@ export function calculateWeekSummaries(dayStats: DayStats[]): WeekSummary[] {
       // Finish the current week
       const totalMinutes = currentWeek.reduce((sum, d) => sum + d.totalMinutes, 0);
       const workdays = countWeekWorkdays(currentWeek);
-      const targetMinutes = workdays * SPECIAL_DAY_MINUTES;
+      const targetMinutes = workdays * dailyMinutes;
       weeks.push({
         weekNumber: currentWeekNumber,
         days: currentWeek,
@@ -207,7 +211,7 @@ export function calculateWeekSummaries(dayStats: DayStats[]): WeekSummary[] {
   if (currentWeek.length > 0) {
     const totalMinutes = currentWeek.reduce((sum, d) => sum + d.totalMinutes, 0);
     const workdays = countWeekWorkdays(currentWeek);
-    const targetMinutes = workdays * SPECIAL_DAY_MINUTES;
+    const targetMinutes = workdays * dailyMinutes;
     weeks.push({
       weekNumber: currentWeekNumber,
       days: currentWeek,
@@ -234,11 +238,12 @@ export function countWorkdays(dates: string[]): number {
 
 /**
  * Calculate expected hours for a month.
- * Expected = workdays × SPECIAL_DAY_HOURS (6h per day).
+ * Expected = workdays × dailyMinutes.
+ * @param dailyMinutes - The full day minutes. Defaults to SPECIAL_DAY_MINUTES for backwards compatibility.
  */
-export function calculateExpectedMinutes(dates: string[]): number {
+export function calculateExpectedMinutes(dates: string[], dailyMinutes: number = SPECIAL_DAY_MINUTES): number {
   const workdays = countWorkdays(dates);
-  return workdays * SPECIAL_DAY_MINUTES;
+  return workdays * dailyMinutes;
 }
 
 /**

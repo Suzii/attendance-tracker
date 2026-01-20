@@ -93,3 +93,29 @@ export interface StoredData {
   data: AttendanceData;
   lastUpdated: string;
 }
+
+/**
+ * Application settings.
+ */
+export interface Settings {
+  /** Default hours credited for a full work day (sick, vacation, public holiday) */
+  dailyWorkHours: number;
+}
+
+/**
+ * Per-month settings that get baked into the data.
+ */
+export interface MonthSettings {
+  /** Hours per day for this specific month */
+  dailyWorkHours: number;
+}
+
+/**
+ * Stored settings structure for localStorage.
+ */
+export interface StoredSettings {
+  version: number;
+  settings: Settings;
+  /** Per-month overrides, keyed by YYYY-MM */
+  monthlySettings: { [month: string]: MonthSettings };
+}

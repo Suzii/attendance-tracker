@@ -1,11 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AttendanceProvider } from './context/AttendanceContext';
+import { SettingsProvider } from './context/SettingsContext';
 import { HomePage } from './pages/HomePage';
 
 function App() {
   return (
     <BrowserRouter>
-      <AttendanceProvider>
+      <SettingsProvider>
+        <AttendanceProvider>
         <Routes>
           {/* Main view - defaults to current month */}
           <Route path="/" element={<HomePage />} />
@@ -16,7 +18,8 @@ function App() {
           {/* Catch-all redirect */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </AttendanceProvider>
+        </AttendanceProvider>
+      </SettingsProvider>
     </BrowserRouter>
   );
 }
