@@ -1,11 +1,27 @@
-import type { TimeEntry, DayRecord, DayStats, WeekSummary } from '../types';
+import type { TimeEntry, DayRecord, DayStats, WeekSummary, SpecialDayType } from '../types';
 import {
   SPECIAL_DAY_MINUTES,
+  HALF_DAY_MINUTES,
   TOTAL_DISPLAY_MINUTES,
   LUNCH_DURATION_LONG,
 } from '../constants';
 import { getDayOfWeek, isWeekend, getWeekNumber } from './dateUtils';
 import { getCzechHoliday } from './czechHolidays';
+
+/**
+ * Check if a special day type is a half-day.
+ */
+export function isHalfDay(specialDay: SpecialDayType): boolean {
+  return specialDay?.includes('_half') ?? false;
+}
+
+/**
+ * Get the minutes credited for a special day type.
+ * Full days (sick, vacation) = 6h, half days = 3h.
+ */
+export function getSpecialDayMinutes(specialDay: SpecialDayType): number {
+  return isHalfDay(specialDay) ? HALF_DAY_MINUTES : SPECIAL_DAY_MINUTES;
+}
 
 /**
  * Calculate the total minutes worked from a list of time entries.
@@ -22,13 +38,19 @@ export function calculateEntriesTotal(entries: TimeEntry[]): number {
 
 /**
  * Calculate total minutes for a day record.
- * Special days (sick, vacation, public_holiday) return SPECIAL_DAY_MINUTES.
+ * Full special days (sick, vacation, public_holiday) return SPECIAL_DAY_MINUTES.
+ * Half-day special days return HALF_DAY_MINUTES + logged entries.
  */
 export function calculateDayTotal(record: DayRecord | undefined): number {
   if (!record) return 0;
 
   if (record.specialDay) {
-    return SPECIAL_DAY_MINUTES;
+    const specialMinutes = getSpecialDayMinutes(record.specialDay);
+    // Half-days allow tracking work for the other half
+    if (isHalfDay(record.specialDay)) {
+      return specialMinutes + calculateEntriesTotal(record.entries);
+    }
+    return specialMinutes;
   }
 
   return calculateEntriesTotal(record.entries);
@@ -113,9 +135,15 @@ export function calculateDayStats(
       totalMinutes += calculateEntriesTotal(record.entries);
     }
   }
-  // Sick/vacation days: flat 6h
+  // Sick/vacation days (full or half)
   else if (specialDay) {
-    totalMinutes = SPECIAL_DAY_MINUTES;
+    const specialMinutes = getSpecialDayMinutes(specialDay);
+    // Half-days allow tracking work for the other half
+    if (isHalfDay(specialDay) && record?.entries) {
+      totalMinutes = specialMinutes + calculateEntriesTotal(record.entries);
+    } else {
+      totalMinutes = specialMinutes;
+    }
   }
   // Regular days: just logged entries
   else if (record?.entries) {

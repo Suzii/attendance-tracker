@@ -11,10 +11,18 @@ export interface TimeEntry {
 /**
  * Special day types that override normal time tracking.
  * - 'sick': Sick day (6 hours)
+ * - 'sick_first_half': Sick day morning (3 hours, can track work for afternoon)
+ * - 'sick_second_half': Sick day afternoon (3 hours, can track work for morning)
  * - 'vacation': Vacation day (6 hours)
+ * - 'vacation_first_half': Vacation morning (3 hours, can track work for afternoon)
+ * - 'vacation_second_half': Vacation afternoon (3 hours, can track work for morning)
  * - 'public_holiday': Czech public holiday (6 hours, auto-detected, locked)
  */
-export type SpecialDayType = 'sick' | 'vacation' | 'public_holiday' | null;
+export type SpecialDayType =
+  | 'sick' | 'sick_first_half' | 'sick_second_half'
+  | 'vacation' | 'vacation_first_half' | 'vacation_second_half'
+  | 'public_holiday'
+  | null;
 
 /**
  * A single day's attendance record.

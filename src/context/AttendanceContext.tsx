@@ -24,6 +24,7 @@ import {
   calculateExpectedMinutes,
   generateEntryId,
   splitEntryForLunch,
+  isHalfDay,
 } from '../utils/timeCalculations';
 import { validateData } from '../utils/validation';
 import { isCzechHoliday } from '../utils/czechHolidays';
@@ -84,8 +85,8 @@ function attendanceReducer(
         return state;
       }
 
-      // Don't allow tracking if day is marked as special
-      if (dayRecord.specialDay) {
+      // Don't allow tracking if day is marked as full-day special (half-days allow tracking)
+      if (dayRecord.specialDay && !isHalfDay(dayRecord.specialDay)) {
         return state;
       }
 
@@ -180,8 +181,8 @@ function attendanceReducer(
         specialDay: null,
       };
 
-      // If setting a special day, clear entries
-      const entries = specialDay ? [] : existingRecord.entries;
+      // Half-days preserve entries, full-days clear them
+      const entries = specialDay && !isHalfDay(specialDay) ? [] : existingRecord.entries;
 
       return {
         ...state,

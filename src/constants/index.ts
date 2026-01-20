@@ -5,6 +5,7 @@ export const WEEKLY_TARGET_MINUTES = WEEKLY_TARGET_HOURS * 60; // 1800
 // Special day hours (sick, vacation, public holiday)
 export const SPECIAL_DAY_HOURS = 6;
 export const SPECIAL_DAY_MINUTES = SPECIAL_DAY_HOURS * 60; // 360
+export const HALF_DAY_MINUTES = SPECIAL_DAY_MINUTES / 2; // 180 (3h)
 
 // Thresholds for weekly status colors
 export const THRESHOLD_OVERTIME_HOURS = 34.5;

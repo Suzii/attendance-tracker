@@ -1,6 +1,7 @@
 import { useAttendance } from '../../hooks/useAttendance';
 import { hasBlockingErrors } from '../../utils/validation';
 import { getTodayDateString } from '../../utils/dateUtils';
+import { isHalfDay } from '../../utils/timeCalculations';
 import { MAX_ENTRIES_PER_DAY } from '../../constants';
 
 export function StartStopButton() {
@@ -12,18 +13,20 @@ export function StartStopButton() {
 
   // Check all conditions that prevent starting
   const hasErrors = hasBlockingErrors(validationErrors);
-  const isSpecialDay = todayRecord?.specialDay !== null && todayRecord?.specialDay !== undefined;
+  // Full-day special days block tracking, half-days allow it
+  const specialDay = todayRecord?.specialDay;
+  const isFullDaySpecial = specialDay !== null && specialDay !== undefined && !isHalfDay(specialDay);
   const maxEntriesReached = (todayRecord?.entries.length ?? 0) >= MAX_ENTRIES_PER_DAY;
 
-  // Determine if disabled and why (public holidays are now allowed)
-  const cannotStart = !isTracking && (hasErrors || isSpecialDay || maxEntriesReached);
+  // Determine if disabled and why (public holidays are now allowed, half-days allow tracking)
+  const cannotStart = !isTracking && (hasErrors || isFullDaySpecial || maxEntriesReached);
   const isDisabled = cannotStart;
 
   // Get reason for being disabled
   const getDisabledReason = (): string | null => {
     if (isTracking) return null;
     if (hasErrors) return 'Fix unclosed entries first';
-    if (isSpecialDay) return todayRecord?.specialDay === 'sick' ? 'Sick day' : 'Vacation';
+    if (isFullDaySpecial) return specialDay === 'sick' ? 'Sick day' : 'Vacation';
     if (maxEntriesReached) return 'Max entries reached';
     return null;
   };

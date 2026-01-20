@@ -1,7 +1,7 @@
 import type { DayStats, DayRecord } from '../../types';
 import { TimeSpanVisual } from './TimeSpanVisual';
 import { getDayName, formatDayNumber } from '../../utils/dateUtils';
-import { formatMinutes } from '../../utils/timeCalculations';
+import { formatMinutes, isHalfDay } from '../../utils/timeCalculations';
 import { DAY_COLORS } from '../../constants';
 
 interface DayRowProps {
@@ -13,6 +13,10 @@ interface DayRowProps {
 export function DayRow({ dayStats, record, onEdit }: DayRowProps) {
   const { date, totalMinutes, isWeekend, specialDay, isPublicHoliday, holidayName } = dayStats;
 
+  // Check if it's a sick or vacation type (full or half)
+  const isSickType = specialDay?.startsWith('sick') ?? false;
+  const isVacationType = specialDay?.startsWith('vacation') ?? false;
+
   // Determine row styling
   let rowClass = '';
   let textClass: string = DAY_COLORS.weekday;
@@ -20,10 +24,10 @@ export function DayRow({ dayStats, record, onEdit }: DayRowProps) {
   if (isPublicHoliday) {
     rowClass = DAY_COLORS.publicHoliday;
     textClass = 'text-blue-700';
-  } else if (specialDay === 'sick') {
+  } else if (isSickType) {
     rowClass = DAY_COLORS.sick;
     textClass = 'text-orange-700';
-  } else if (specialDay === 'vacation') {
+  } else if (isVacationType) {
     rowClass = DAY_COLORS.vacation;
     textClass = 'text-teal-700';
   } else if (isWeekend) {
@@ -35,7 +39,11 @@ export function DayRow({ dayStats, record, onEdit }: DayRowProps) {
   const getSpecialDayLabel = () => {
     if (isPublicHoliday && holidayName) return holidayName;
     if (specialDay === 'sick') return 'Sick Day';
+    if (specialDay === 'sick_first_half') return 'Sick Day (AM)';
+    if (specialDay === 'sick_second_half') return 'Sick Day (PM)';
     if (specialDay === 'vacation') return 'Vacation';
+    if (specialDay === 'vacation_first_half') return 'Vacation (AM)';
+    if (specialDay === 'vacation_second_half') return 'Vacation (PM)';
     return null;
   };
 
@@ -56,15 +64,17 @@ export function DayRow({ dayStats, record, onEdit }: DayRowProps) {
       </div>
 
       {/* Time visualization or special day label */}
-      {specialDayLabel && (!record?.entries?.length || !isPublicHoliday) ? (
+      {specialDayLabel && !record?.entries?.length && !isPublicHoliday && !isHalfDay(specialDay) ? (
+        // Full-day special (sick/vacation) with no entries - just show label
         <div className={`flex-1 text-sm font-medium ${textClass}`}>
           {specialDayLabel}
         </div>
       ) : (
+        // Public holiday, half-day, or regular day with entries - show label + time spans
         <div className="flex-1 flex items-center gap-2">
-          {isPublicHoliday && (
+          {(isPublicHoliday || isHalfDay(specialDay)) && specialDayLabel && (
             <span className={`text-xs font-medium ${textClass} shrink-0`}>
-              {holidayName}
+              {specialDayLabel}
             </span>
           )}
           <TimeSpanVisual entries={record?.entries ?? []} />

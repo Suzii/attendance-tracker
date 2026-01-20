@@ -3,9 +3,9 @@ import { useAttendance } from '../../hooks/useAttendance';
 import { TimeRangeInput } from './TimestampInput';
 import type { DayRecord, TimeEntry, SpecialDayType } from '../../types';
 import { formatMonth, getDayName, formatDayNumber } from '../../utils/dateUtils';
-import { generateEntryId, formatMinutes, calculateEntriesTotal, splitEntryForLunch } from '../../utils/timeCalculations';
+import { generateEntryId, formatMinutes, calculateEntriesTotal, splitEntryForLunch, isHalfDay, getSpecialDayMinutes } from '../../utils/timeCalculations';
 import { isCzechHoliday, getCzechHoliday } from '../../utils/czechHolidays';
-import { MAX_ENTRIES_PER_DAY, SPECIAL_DAY_MINUTES } from '../../constants';
+import { MAX_ENTRIES_PER_DAY, SPECIAL_DAY_MINUTES, HALF_DAY_MINUTES } from '../../constants';
 
 interface EditDayModalProps {
   date: string;
@@ -20,31 +20,59 @@ export function EditDayModal({ date, onClose }: EditDayModalProps) {
   const isPublicHoliday = isCzechHoliday(date);
   const holidayInfo = getCzechHoliday(date);
 
+  // Helper to parse existing special day into base type and portion
+  const parseSpecialDay = (specialDay: SpecialDayType): { baseType: 'sick' | 'vacation' | null; portion: 'full' | 'first_half' | 'second_half' } => {
+    if (!specialDay || specialDay === 'public_holiday') return { baseType: null, portion: 'full' };
+    if (specialDay === 'sick') return { baseType: 'sick', portion: 'full' };
+    if (specialDay === 'vacation') return { baseType: 'vacation', portion: 'full' };
+    if (specialDay === 'sick_first_half') return { baseType: 'sick', portion: 'first_half' };
+    if (specialDay === 'sick_second_half') return { baseType: 'sick', portion: 'second_half' };
+    if (specialDay === 'vacation_first_half') return { baseType: 'vacation', portion: 'first_half' };
+    if (specialDay === 'vacation_second_half') return { baseType: 'vacation', portion: 'second_half' };
+    return { baseType: null, portion: 'full' };
+  };
+
+  // Helper to combine base type and portion into SpecialDayType
+  const combineSpecialDay = (baseType: 'sick' | 'vacation' | null, portion: 'full' | 'first_half' | 'second_half'): SpecialDayType => {
+    if (!baseType) return null;
+    if (portion === 'full') return baseType;
+    return `${baseType}_${portion}` as SpecialDayType;
+  };
+
+  const initialParsed = parseSpecialDay(existingRecord?.specialDay ?? null);
+
   // Local state for editing
   const [entries, setEntries] = useState<TimeEntry[]>(
     existingRecord?.entries ?? []
   );
-  const [specialDayType, setSpecialDayType] = useState<SpecialDayType>(
-    existingRecord?.specialDay ?? null
-  );
+  const [baseType, setBaseType] = useState<'sick' | 'vacation' | null>(initialParsed.baseType);
+  const [portion, setPortion] = useState<'full' | 'first_half' | 'second_half'>(initialParsed.portion);
+
+  // Derive the combined special day type
+  const specialDayType = combineSpecialDay(baseType, portion);
 
   // Sync local state when date changes
   useEffect(() => {
     const record = state.data[date];
     setEntries(record?.entries ?? []);
-    setSpecialDayType(record?.specialDay ?? null);
+    const parsed = parseSpecialDay(record?.specialDay ?? null);
+    setBaseType(parsed.baseType);
+    setPortion(parsed.portion);
   }, [date, state.data]);
 
   // Calculate total for display
   // Public holidays: 6h base + logged entries
-  // Sick/vacation: flat 6h
+  // Full sick/vacation: flat 6h
+  // Half sick/vacation: 3h + logged entries
   // Regular: just logged entries
   const entriesMinutes = calculateEntriesTotal(entries);
+  const isHalfDayType = isHalfDay(specialDayType);
   let totalMinutes = 0;
   if (isPublicHoliday) {
     totalMinutes = SPECIAL_DAY_MINUTES + entriesMinutes;
   } else if (specialDayType) {
-    totalMinutes = SPECIAL_DAY_MINUTES;
+    const specialMinutes = getSpecialDayMinutes(specialDayType);
+    totalMinutes = isHalfDayType ? specialMinutes + entriesMinutes : specialMinutes;
   } else {
     totalMinutes = entriesMinutes;
   }
@@ -80,21 +108,33 @@ export function EditDayModal({ date, onClose }: EditDayModalProps) {
     setEntries([...entries, newEntry]);
   };
 
-  const handleSpecialDayChange = (type: SpecialDayType) => {
-    setSpecialDayType(type);
-    if (type) {
+  const handleBaseTypeChange = (type: 'sick' | 'vacation' | null) => {
+    setBaseType(type);
+    // Don't clear entries yet - let user pick portion first
+    // Entries are only cleared when "Full Day" is explicitly selected
+    if (!type) {
+      setPortion('full');
+    }
+  };
+
+  const handlePortionChange = (newPortion: 'full' | 'first_half' | 'second_half') => {
+    setPortion(newPortion);
+    // Full days clear entries, half days preserve them
+    if (newPortion === 'full') {
       setEntries([]);
     }
   };
 
   const handleSave = () => {
-    if (specialDayType) {
+    if (specialDayType && !isHalfDayType) {
+      // Full-day sick/vacation - use setSpecialDay which clears entries
       setSpecialDay(date, specialDayType);
     } else {
+      // Regular day or half-day - save entries along with specialDay
       const record: DayRecord = {
         date,
         entries,
-        specialDay: null,
+        specialDay: specialDayType,
       };
       updateDay(record);
     }
@@ -103,7 +143,8 @@ export function EditDayModal({ date, onClose }: EditDayModalProps) {
 
   const handleClear = () => {
     setEntries([]);
-    setSpecialDayType(null);
+    setBaseType(null);
+    setPortion('full');
   };
 
   // Local lunch break handling (works on unsaved entries)
@@ -203,10 +244,10 @@ export function EditDayModal({ date, onClose }: EditDayModalProps) {
               </label>
               <div className="flex gap-2">
                 <button
-                  onClick={() => handleSpecialDayChange(null)}
+                  onClick={() => handleBaseTypeChange(null)}
                   className={`
                     px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                    ${!specialDayType
+                    ${!baseType
                       ? 'bg-blue-500 text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }
@@ -215,10 +256,10 @@ export function EditDayModal({ date, onClose }: EditDayModalProps) {
                   Regular
                 </button>
                 <button
-                  onClick={() => handleSpecialDayChange('sick')}
+                  onClick={() => handleBaseTypeChange('sick')}
                   className={`
                     px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                    ${specialDayType === 'sick'
+                    ${baseType === 'sick'
                       ? 'bg-orange-500 text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }
@@ -227,10 +268,10 @@ export function EditDayModal({ date, onClose }: EditDayModalProps) {
                   Sick Day
                 </button>
                 <button
-                  onClick={() => handleSpecialDayChange('vacation')}
+                  onClick={() => handleBaseTypeChange('vacation')}
                   className={`
                     px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                    ${specialDayType === 'vacation'
+                    ${baseType === 'vacation'
                       ? 'bg-teal-500 text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }
@@ -239,15 +280,62 @@ export function EditDayModal({ date, onClose }: EditDayModalProps) {
                   Vacation
                 </button>
               </div>
+
+              {/* Portion selector (shown when sick or vacation is selected) */}
+              {baseType && (
+                <div className="mt-3">
+                  <label className="text-sm font-medium text-gray-600 block mb-2">
+                    Duration
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handlePortionChange('full')}
+                      className={`
+                        px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
+                        ${portion === 'full'
+                          ? baseType === 'sick' ? 'bg-orange-500 text-white' : 'bg-teal-500 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }
+                      `}
+                    >
+                      Full Day
+                    </button>
+                    <button
+                      onClick={() => handlePortionChange('first_half')}
+                      className={`
+                        px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
+                        ${portion === 'first_half'
+                          ? baseType === 'sick' ? 'bg-orange-500 text-white' : 'bg-teal-500 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }
+                      `}
+                    >
+                      First Half
+                    </button>
+                    <button
+                      onClick={() => handlePortionChange('second_half')}
+                      className={`
+                        px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
+                        ${portion === 'second_half'
+                          ? baseType === 'sick' ? 'bg-orange-500 text-white' : 'bg-teal-500 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }
+                      `}
+                    >
+                      Second Half
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {/* Time entries (shown for public holidays and regular days) */}
-          {(isPublicHoliday || !specialDayType) && (
+          {/* Time entries (shown for public holidays, regular days, half-days, or when entries exist) */}
+          {(isPublicHoliday || !specialDayType || isHalfDayType || entries.length > 0) && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-gray-600">
-                  {isPublicHoliday ? 'Extra Work' : 'Time Entries'}
+                  {isPublicHoliday ? 'Extra Work' : isHalfDayType ? 'Work Time' : 'Time Entries'}
                 </label>
                 <span className="text-sm text-gray-400">
                   {entries.length}/{MAX_ENTRIES_PER_DAY}
@@ -256,7 +344,7 @@ export function EditDayModal({ date, onClose }: EditDayModalProps) {
 
               {entries.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-4">
-                  {isPublicHoliday ? 'No extra work logged.' : 'No time entries for this day.'}
+                  {isPublicHoliday ? 'No extra work logged.' : isHalfDayType ? 'No work logged for the other half.' : 'No time entries for this day.'}
                 </p>
               ) : (
                 <div className="space-y-3">
@@ -287,11 +375,29 @@ export function EditDayModal({ date, onClose }: EditDayModalProps) {
             </div>
           )}
 
-          {/* Special day info (sick/vacation) */}
-          {!isPublicHoliday && specialDayType && (
+          {/* Special day info (sick/vacation - full day only) */}
+          {!isPublicHoliday && specialDayType && !isHalfDayType && entries.length === 0 && (
             <div className="text-center py-4">
               <p className="text-gray-600">
-                {specialDayType === 'sick' ? 'Sick day' : 'Vacation'} - 6 hours will be logged automatically.
+                {baseType === 'sick' ? 'Sick day' : 'Vacation'} - 6 hours will be logged automatically.
+              </p>
+            </div>
+          )}
+
+          {/* Warning when full-day selected but entries exist */}
+          {!isPublicHoliday && specialDayType && !isHalfDayType && entries.length > 0 && (
+            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-700">
+                Full {baseType === 'sick' ? 'sick day' : 'vacation'} selected - entries below will be cleared on save. Select "First Half" or "Second Half" to keep them.
+              </p>
+            </div>
+          )}
+
+          {/* Half-day info */}
+          {!isPublicHoliday && specialDayType && isHalfDayType && (
+            <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+              <p className="text-sm text-gray-600">
+                {baseType === 'sick' ? 'Sick day' : 'Vacation'} ({portion === 'first_half' ? 'first half' : 'second half'}) - 3 hours will be logged. You can track work for the other half below.
               </p>
             </div>
           )}
@@ -308,6 +414,11 @@ export function EditDayModal({ date, onClose }: EditDayModalProps) {
               {isPublicHoliday && entriesMinutes > 0 && (
                 <span className="text-gray-400 ml-1">
                   (6h + {formatMinutes(entriesMinutes)})
+                </span>
+              )}
+              {isHalfDayType && entriesMinutes > 0 && (
+                <span className="text-gray-400 ml-1">
+                  (3h + {formatMinutes(entriesMinutes)})
                 </span>
               )}
             </div>
