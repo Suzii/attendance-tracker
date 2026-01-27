@@ -3,9 +3,10 @@ interface TimestampInputProps {
   value: string; // ISO timestamp or empty
   onChange: (value: string) => void;
   disabled?: boolean;
+  targetDate: string; // YYYY-MM-DD format - the date this entry belongs to
 }
 
-export function TimestampInput({ label, value, onChange, disabled }: TimestampInputProps) {
+export function TimestampInput({ label, value, onChange, disabled, targetDate }: TimestampInputProps) {
   // Convert ISO timestamp to time input value (HH:MM)
   const getTimeValue = (): string => {
     if (!value) return '';
@@ -22,13 +23,8 @@ export function TimestampInput({ label, value, onChange, disabled }: TimestampIn
       return;
     }
 
-    // Get the date part from the current value or use today
-    let baseDate: Date;
-    if (value) {
-      baseDate = new Date(value);
-    } else {
-      baseDate = new Date();
-    }
+    // Always use the target date to ensure entries stay on the correct day
+    const baseDate = new Date(targetDate + 'T00:00:00');
 
     const [hours, minutes] = timeValue.split(':').map(Number);
     baseDate.setHours(hours, minutes, 0, 0);
@@ -67,6 +63,7 @@ interface TimeRangeInputProps {
   /** Optional: show lunch break buttons */
   onLunchBreak?: (durationMinutes: number) => void;
   canInsertLunch?: (durationMinutes: number) => boolean;
+  targetDate: string; // YYYY-MM-DD format - the date this entry belongs to
 }
 
 export function TimeRangeInput({
@@ -77,6 +74,7 @@ export function TimeRangeInput({
   disabled,
   onLunchBreak,
   canInsertLunch,
+  targetDate,
 }: TimeRangeInputProps) {
   const showLunchButtons = onLunchBreak && canInsertLunch && entry.end;
   const canShort = showLunchButtons && canInsertLunch(30);
@@ -89,12 +87,14 @@ export function TimeRangeInput({
         value={entry.start}
         onChange={onStartChange}
         disabled={disabled}
+        targetDate={targetDate}
       />
       <TimestampInput
         label="End"
         value={entry.end ?? ''}
         onChange={onEndChange}
         disabled={disabled}
+        targetDate={targetDate}
       />
 
       <button

@@ -128,10 +128,20 @@ function attendanceReducer(
 
       const { date: entryDate, entry: _ } = ongoing;
       const dayRecord = state.data[entryDate];
+      const today = getTodayDateString();
+
+      // Determine end time: if closing on a different day, clamp to end of entry's day
+      let endTime: string;
+      if (today !== entryDate) {
+        // Clamp to 23:59:59 of the entry's start day
+        endTime = `${entryDate}T23:59:59.999`;
+      } else {
+        endTime = new Date().toISOString();
+      }
 
       const updatedEntries = dayRecord.entries.map(entry =>
         entry.id === state.currentEntryId
-          ? { ...entry, end: new Date().toISOString() }
+          ? { ...entry, end: endTime }
           : entry
       );
 

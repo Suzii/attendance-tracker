@@ -364,6 +364,7 @@ export function EditDayModal({ date, onClose }: EditDayModalProps) {
                       onDelete={() => handleDeleteEntry(index)}
                       onLunchBreak={(duration) => handleLocalLunchBreak(index, duration)}
                       canInsertLunch={(duration) => canInsertLunch(entry, duration)}
+                      targetDate={date}
                     />
                   ))}
                 </div>
