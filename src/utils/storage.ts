@@ -93,19 +93,50 @@ const DEFAULT_SETTINGS: Settings = {
 
 /**
  * Load settings from localStorage.
+ * On first load, migrates existing attendance data by baking in 6h default for all existing months.
  */
 export function loadSettings(): { settings: Settings; monthlySettings: { [month: string]: MonthSettings } } {
   try {
     const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
-    if (!raw) {
-      return { settings: DEFAULT_SETTINGS, monthlySettings: {} };
+
+    // If settings already exist, just return them
+    if (raw) {
+      const stored: StoredSettings = JSON.parse(raw);
+      return {
+        settings: stored.settings ?? DEFAULT_SETTINGS,
+        monthlySettings: stored.monthlySettings ?? {},
+      };
     }
 
-    const stored: StoredSettings = JSON.parse(raw);
-    return {
-      settings: stored.settings ?? DEFAULT_SETTINGS,
-      monthlySettings: stored.monthlySettings ?? {},
-    };
+    // First time loading settings - migrate existing attendance data
+    // Bake in 6h default for all months that have data
+    const monthlySettings: { [month: string]: MonthSettings } = {};
+
+    const attendanceRaw = localStorage.getItem(STORAGE_KEY);
+    if (attendanceRaw) {
+      const attendanceData: StoredData = JSON.parse(attendanceRaw);
+      if (attendanceData.data) {
+        // Find all unique months in the data
+        const months = new Set<string>();
+        for (const date of Object.keys(attendanceData.data)) {
+          const month = date.substring(0, 7); // YYYY-MM
+          months.add(month);
+        }
+
+        // Bake in the default (6h) for each existing month
+        for (const month of months) {
+          monthlySettings[month] = { dailyWorkHours: DEFAULT_DAILY_WORK_HOURS };
+        }
+
+        console.log(`Migrated settings for ${months.size} existing months with ${DEFAULT_DAILY_WORK_HOURS}h default`);
+      }
+    }
+
+    // Save the migrated settings immediately
+    const newSettings = { settings: DEFAULT_SETTINGS, monthlySettings };
+    saveSettings(newSettings.settings, newSettings.monthlySettings);
+
+    return newSettings;
   } catch (error) {
     console.error('Failed to load settings from localStorage:', error);
     return { settings: DEFAULT_SETTINGS, monthlySettings: {} };

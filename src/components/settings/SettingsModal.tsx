@@ -4,9 +4,10 @@ import { useAttendance } from '../../hooks/useAttendance';
 
 interface SettingsModalProps {
   onClose: () => void;
+  onOpenRawDataEditor: () => void;
 }
 
-export function SettingsModal({ onClose }: SettingsModalProps) {
+export function SettingsModal({ onClose, onOpenRawDataEditor }: SettingsModalProps) {
   const { settings, getWorkHoursForMonth, setDefaultWorkHours, setWorkHoursForMonth } = useSettings();
   const { state } = useAttendance();
 
@@ -97,6 +98,32 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               onChange={(e) => setMonthHours(parseFloat(e.target.value) || 6)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
+          </div>
+
+          {/* Advanced section */}
+          <div className="pt-4 border-t border-gray-200">
+            <label className="text-sm font-medium text-gray-700 block mb-2">
+              Advanced
+            </label>
+            <button
+              onClick={onOpenRawDataEditor}
+              className="w-full px-4 py-2 text-sm text-left text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                />
+              </svg>
+              Edit Raw Data
+            </button>
           </div>
         </div>
 

@@ -4,7 +4,7 @@ import { useAttendance } from '../hooks/useAttendance';
 import { StartStopButton, CurrentSession, LunchButtons } from '../components/tracking';
 import { CalendarView } from '../components/calendar';
 import { EditDayModal, ValidationBanner } from '../components/editing';
-import { SettingsModal } from '../components/settings';
+import { SettingsModal, RawDataEditorModal } from '../components/settings';
 import { isValidYearMonth, parseYearMonth } from '../utils/dateUtils';
 
 export function HomePage() {
@@ -14,6 +14,7 @@ export function HomePage() {
 
   const [editingDate, setEditingDate] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showRawDataEditor, setShowRawDataEditor] = useState(false);
 
   // Sync URL params to state on initial load
   useEffect(() => {
@@ -108,7 +109,24 @@ export function HomePage() {
 
         {/* Settings Modal */}
         {showSettings && (
-          <SettingsModal onClose={() => setShowSettings(false)} />
+          <SettingsModal
+            onClose={() => setShowSettings(false)}
+            onOpenRawDataEditor={() => {
+              setShowSettings(false);
+              setShowRawDataEditor(true);
+            }}
+          />
+        )}
+
+        {/* Raw Data Editor Modal */}
+        {showRawDataEditor && (
+          <RawDataEditorModal
+            onClose={() => setShowRawDataEditor(false)}
+            onDataSaved={() => {
+              // Reload the page to refresh all data from localStorage
+              window.location.reload();
+            }}
+          />
         )}
       </div>
     </div>
