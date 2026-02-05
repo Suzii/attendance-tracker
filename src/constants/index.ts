@@ -23,7 +23,7 @@ export const STORAGE_VERSION = 1;
 export const SETTINGS_VERSION = 1;
 
 // Default settings
-export const DEFAULT_DAILY_WORK_HOURS = 6;
+export const DEFAULT_DAILY_WORK_HOURS = 8;
 
 // Day display range (full 24 hours for visualization)
 export const DAY_START_HOUR = 0;
