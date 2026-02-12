@@ -13,9 +13,10 @@ interface DayRowProps {
 export function DayRow({ dayStats, record, onEdit }: DayRowProps) {
   const { date, totalMinutes, isWeekend, specialDay, isPublicHoliday, holidayName } = dayStats;
 
-  // Check if it's a sick or vacation type (full or half)
+  // Check if it's a sick, vacation, or pn_ocr type (full or half)
   const isSickType = specialDay?.startsWith('sick') ?? false;
   const isVacationType = specialDay?.startsWith('vacation') ?? false;
+  const isPnOcrType = specialDay?.startsWith('pn_ocr') ?? false;
 
   // Determine row styling
   let rowClass = '';
@@ -30,6 +31,9 @@ export function DayRow({ dayStats, record, onEdit }: DayRowProps) {
   } else if (isVacationType) {
     rowClass = DAY_COLORS.vacation;
     textClass = 'text-teal-700';
+  } else if (isPnOcrType) {
+    rowClass = DAY_COLORS.pnOcr;
+    textClass = 'text-pink-700';
   } else if (isWeekend) {
     rowClass = DAY_COLORS.weekend;
     textClass = 'text-gray-400';
@@ -44,6 +48,9 @@ export function DayRow({ dayStats, record, onEdit }: DayRowProps) {
     if (specialDay === 'vacation') return 'Vacation';
     if (specialDay === 'vacation_first_half') return 'Vacation (AM)';
     if (specialDay === 'vacation_second_half') return 'Vacation (PM)';
+    if (specialDay === 'pn_ocr') return 'PN/OČR';
+    if (specialDay === 'pn_ocr_first_half') return 'PN/OČR (AM)';
+    if (specialDay === 'pn_ocr_second_half') return 'PN/OČR (PM)';
     return null;
   };
 

@@ -16,11 +16,15 @@ export interface TimeEntry {
  * - 'vacation': Vacation day (6 hours)
  * - 'vacation_first_half': Vacation morning (3 hours, can track work for afternoon)
  * - 'vacation_second_half': Vacation afternoon (3 hours, can track work for morning)
+ * - 'pn_ocr': PN/OČR - sick or caring for sick family member (6 hours)
+ * - 'pn_ocr_first_half': PN/OČR morning (3 hours, can track work for afternoon)
+ * - 'pn_ocr_second_half': PN/OČR afternoon (3 hours, can track work for morning)
  * - 'public_holiday': Czech public holiday (6 hours, auto-detected, locked)
  */
 export type SpecialDayType =
   | 'sick' | 'sick_first_half' | 'sick_second_half'
   | 'vacation' | 'vacation_first_half' | 'vacation_second_half'
+  | 'pn_ocr' | 'pn_ocr_first_half' | 'pn_ocr_second_half'
   | 'public_holiday'
   | null;
 

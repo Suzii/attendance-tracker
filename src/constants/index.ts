@@ -65,4 +65,5 @@ export const DAY_COLORS = {
   publicHoliday: 'text-blue-700 bg-blue-50',
   sick: 'text-orange-700 bg-orange-50',
   vacation: 'text-teal-700 bg-teal-50',
+  pnOcr: 'text-pink-700 bg-pink-50',
 } as const;
