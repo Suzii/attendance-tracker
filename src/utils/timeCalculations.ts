@@ -130,9 +130,12 @@ export function calculateDayStats(
 
   // Calculate total minutes
   let totalMinutes = 0;
+  const weekend = isWeekend(dateString);
 
-  // Public holidays: dailyMinutes base + any logged work
-  if (isHoliday) {
+  // Public holidays on a weekday: dailyMinutes base + any logged work.
+  // Holidays falling on a weekend credit nothing toward the weekly budget
+  // (weekends are not workdays), so only logged work counts on those days.
+  if (isHoliday && !weekend) {
     totalMinutes = dailyMinutes;
     if (record?.entries) {
       totalMinutes += calculateEntriesTotal(record.entries);
